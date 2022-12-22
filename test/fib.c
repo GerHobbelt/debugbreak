@@ -1,8 +1,9 @@
 #include <stdio.h>
 
 #include "debugbreak.h"
+#include "monolithic_examples.h"
 
-int fib(int n)
+static int fib(int n)
 {
 	int r;
 	if (n == 0 || n == 1)
@@ -14,7 +15,12 @@ int fib(int n)
 	return r;
 }
 
-int main()
+
+#if defined(BUILD_MONOLITHIC)
+#define main      dbgbrk_fib_example_main
+#endif
+
+int main(void)
 {
 	printf("%d\n", fib(15));
 	return 0;
