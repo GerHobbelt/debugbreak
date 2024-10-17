@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "debugbreak.h"
 
-int main()
+int main(void)
 {
 	debug_break(); /* will break into debugger */
 	printf("hello world\n");
@@ -35,7 +35,7 @@ GCC's [__builtin_trap()](http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#i
 ```C
 #include <stdio.h>
 
-int main()
+int main(void)
 {
 	__builtin_trap();
 	printf("hello world\n");
@@ -62,7 +62,7 @@ On ARM, **__builtin_trap()** generates a call to **abort()**, making it even les
 #include <stdio.h>
 #include "debugbreak.h"
    
-int main()
+int main(void)
 {
 	debug_break();
 	printf("hello world\n");
