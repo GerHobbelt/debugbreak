@@ -28,7 +28,14 @@
 
 #ifdef _MSC_VER
 
-#define debug_break __debugbreak
+#include <intrin.h>
+
+#pragma intrinsic(__debugbreak)
+
+static inline void debug_break(void)
+{
+	__debugbreak();
+}
 
 #else
 
