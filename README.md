@@ -31,7 +31,7 @@ The requirements for the **debug_break()** function are:
 * GDB commands like **continue**, **next**, **step**, **stepi** must work after a **debug_break()** hit
 
 Ideally, both GCC and Clang would provide a **__builtin_debugtrap()** that satisfies the above on all architectures and operating systems. Unfortunately, that is not the case (yet).
-GCC's [__builtin_trap()](http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftrap-3278) causes the optimizers to think the code follwing can be removed ([test/trap.c](https://github.com/scottt/debugbreak/blob/master/test/trap.c)):
+GCC's [__builtin_trap()](http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftrap-3278) causes the optimizers to think the code following can be removed ([test/trap.c](https://github.com/scottt/debugbreak/blob/master/test/trap.c)):
 ```C
 #include <stdio.h>
 
