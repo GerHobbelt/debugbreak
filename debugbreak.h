@@ -31,6 +31,16 @@
 #define LIBDEBUGBREAK_EMULATES___HAS_BUILTIN   1
 #endif
 
+#if !defined(__has_include)
+#define __has_include(f)      0
+#define LIBDEBUGBREAK_EMULATES___HAS_INCLUDE   1
+#endif
+
+#if !defined(__has_feature)
+#define __has_feature(f)      0
+#define LIBDEBUGBREAK_EMULATES___HAS_FEATURE   1
+#endif
+
 
 // from libassert.
 // 
@@ -106,7 +116,9 @@
 
 
 #ifdef __cplusplus
-extern "C" {
+#define DEBUGBREAK_EXTERN_C     extern "C"
+#else
+#define DEBUGBREAK_EXTERN_C     
 #endif
 
 #define DEBUG_BREAK_USE_TRAP_INSTRUCTION            1
@@ -115,8 +127,18 @@ extern "C" {
 #define DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP           4
 #define DEBUG_BREAK_USE_SYSCALL                     5
 #define DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK   6
+#define DEBUG_BREAK_USE_STD_DEBUGBREAK              7
 
-#if __has_builtin(__builtin_debugtrap)
+
+// ---------------------------------------------------------------------------------
+//
+// preparation for the definition of `debug_break()`
+
+#if __has_include(<debugging>) && __has_feature(__cpp_lib_debugging)
+	#include <debugging>
+
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_STD_DEBUGBREAK
+#elif __has_builtin(__builtin_debugtrap)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
 #elif defined(_MSC_VER)
 	#include <intrin.h>
@@ -126,6 +148,8 @@ extern "C" {
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK
 #elif defined(__i386__) || defined(__x86_64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+
+DEBUGBREAK_EXTERN_C
 __inline__ static void trap_instruction(void)
 {
 	__asm__ volatile("int $0x03");
@@ -147,6 +171,8 @@ __inline__ static void trap_instruction(void)
 	//  def : Pat<(debugtrap),
 	//            (INT3)>, Requires<[NotPS]>;
 #if (__ARM_ARCH >= 5)
+
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -158,6 +184,8 @@ __inline__ static void trap_instruction(void)
 #endif
 }
 #else // __ARM_ARCH >= 5
+
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -191,6 +219,7 @@ __inline__ static void trap_instruction(void)
 #elif defined(__thumb__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 /* FIXME: handle __THUMB_INTERWORK__ */
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -223,6 +252,7 @@ __inline__ static void trap_instruction(void)
 }
 #elif defined(__arm__) && !defined(__thumb__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -253,6 +283,7 @@ __inline__ static void trap_instruction(void)
 	} while(0)
 #elif defined(__aarch64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -263,6 +294,7 @@ __inline__ static void trap_instruction(void)
 #elif defined(__powerpc__)
 	/* PPC 32 or 64-bit, big or little endian */
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -281,6 +313,7 @@ __inline__ static void trap_instruction(void)
 	/* RISC-V 32 or 64-bit, whether the "C" extension
 	 * for compressed, 16-bit instructions are supported or not */
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -290,6 +323,7 @@ __inline__ static void trap_instruction(void)
 }
 #elif defined(__loongarch64)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void trap_instruction(void)
 {
@@ -299,9 +333,15 @@ __inline__ static void trap_instruction(void)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
 
+
+// ---------------------------------------------------------------------------------
+//
+// the actual definition of `debug_break()`
+
 #ifndef DEBUG_BREAK_IMPL
 #error "debugbreak.h is not supported on this target"
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_SYSCALL
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void debug_break(void)
 {
@@ -309,18 +349,21 @@ __inline__ static void debug_break(void)
 	INLINE_SYS_RAISE(5);
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void debug_break(void)
 {
 	trap_instruction();
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void debug_break(void)
 {
 	__builtin_debugtrap();
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BUILTIN_TRAP
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void debug_break(void)
 {
@@ -328,22 +371,37 @@ __inline__ static void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_SIGTRAP
 #include <signal.h>
+
+DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
 __inline__ static void debug_break(void)
 {
 	raise(SIGTRAP);
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK
+DEBUGBREAK_EXTERN_C
 static inline void debug_break(void)
 {
 	__debugbreak();
+}
+#elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_STD_DEBUGBREAK
+DEBUGBREAK_EXTERN_C
+static inline void debug_break(void)
+{
+	std::breakpoint_if_debugging();
 }
 #else
 #error "invalid DEBUG_BREAK_IMPL value"
 #endif
 
-#ifdef __cplusplus
-}
+// undo the __has_feature emulation as other libraries/sources will VERY PROBABLY use `defined(__has_feature)` as a feature test, which we MUST NOT thwart!
+#if defined(LIBDEBUGBREAK_EMULATES___HAS_FEATURE)
+#undef __has_feature
+#endif
+
+// undo the __has_include emulation as other libraries/sources will VERY PROBABLY use `defined(__has_include)` as a feature test, which we MUST NOT thwart!
+#if defined(LIBDEBUGBREAK_EMULATES___HAS_INCLUDE)
+#undef __has_include
 #endif
 
 // undo the __has_builtin emulation as other libraries/sources will VERY PROBABLY use `defined(__has_builtin)` as a feature test, which we MUST NOT thwart!
