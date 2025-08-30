@@ -140,10 +140,12 @@ __inline__ static void trap_instruction(void)
 		); \
 	} while(0)
 #elif defined(__aarch64__) && defined(__APPLE__)
-#if defined(__clang__)
+#if defined(__has_builtin)
+# if __has_builtin(__builtin_debugtrap)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
-#else
+# else
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_TRAP
+# endif
 #endif
 #elif defined(__aarch64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
