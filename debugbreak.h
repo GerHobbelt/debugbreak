@@ -60,7 +60,18 @@
 //
 // definition of `debugbreak_is_debugger_present()`
 
-#if defined(_WIN32)
+#if defined(USER_DEFINED_FUNC_IS_DEBUGGER_PRESENT)
+
+// NOTE: the userland code has defined their own is_debugger_present implementation as the USER_DEFINED_FUNC_IS_DEBUGGER_PRESENT' value: use that one instead of our own
+// heuristics/platform-specific approach below.
+
+DEBUGBREAK_EXTERN_C
+static inline int debugbreak_is_debugger_present(void)
+{
+	return USER_DEFINED_FUNC_IS_DEBUGGER_PRESENT();
+}
+
+#elif defined(_WIN32)
 
 //#include <winsock2.h>
 //#include <windows.h>

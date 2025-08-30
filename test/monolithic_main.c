@@ -12,6 +12,7 @@ MONOLITHIC_CMD_TABLE_START()
 	{ "fib", {.f = dbgbrk_fib_example_main } },
 	{ "trap", {.f = dbgbrk_trap_example_main } },
 	{ "cpp", {.f = dbgbrk_cplusplus_example_main } },
+	{ "custom_is_debugger_present", {.fa = dbgbrk_custom_is_debugger_present_example_main } },
 
 MONOLITHIC_CMD_TABLE_END();
 

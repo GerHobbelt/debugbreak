@@ -11,6 +11,7 @@ extern "C" {
 	int dbgbrk_fib_example_main(void);
 	int dbgbrk_trap_example_main(void);
 	int dbgbrk_cplusplus_example_main(void);
+	int dbgbrk_custom_is_debugger_present_example_main(int argc, const char **argv);
 
 #ifdef __cplusplus
 }
