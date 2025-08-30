@@ -14,6 +14,8 @@ int main(void)
 ```
 * Include one header file and insert calls to `debug_break()` in the code where you wish to break into the debugger.
 * Supports GCC, Clang and MSVC.
+* Only executes a breakpoint when an actual debugger has been attached to the running binary.
+  * When no debugger has been attached, the `debug_break()` calls should not cause offense, e.g. by aborting, `signal()`-ing or core dumping the application.
 * Works well on ARM, AArch64, i686, x86-64, POWER and has a fallback code path for other architectures.
 * Works like the **DebugBreak()** function provided by [Windows](http://msdn.microsoft.com/en-us/library/ea9yy3ey.aspx) and [QNX](http://www.qnx.com/developers/docs/6.3.0SP3/neutrino/lib_ref/d/debugbreak.html).
 
@@ -25,12 +27,49 @@ Implementation Notes
 ================================
 
 The requirements for the **debug_break()** function are:
-* Act as a compiler code motion barrier
+* Act as a compiler code motion barrier (see also: https://theunixzoo.co.uk/blog/2021-10-14-preventing-optimisations.html)
 * Don't cause the compiler optimizers to think the code following it can be removed
 * Trigger a software breakpoint hit when executed (e.g. **SIGTRAP** on Linux)
 * GDB commands like **continue**, **next**, **step**, **stepi** must work after a **debug_break()** hit
 
 Ideally, both GCC and Clang would provide a **__builtin_debugtrap()** that satisfies the above on all architectures and operating systems. Unfortunately, that is not the case (yet).
+However, when **__builtin_debugtrap()** is available in your compiler, this is used preferentially.
+If **__builtin_debugtrap()** is *not* available, the various approaches below are used with varying degrees of success.
+
+> **NOTE:**
+>
+> if you want to know *exactly* what will happen, you are kindly invited to RTFC: this document may lag a tad behind today's sharp leading edge of Reality.
+>
+
+Literature re the code motion barrier a.k.a. statement reordering:
+
+* Currently not all platforms' implementations may fully supports this. Only the ones using `asm volatile(...)` are guaranteed to be decent about this.
+* Everyone Out There points at Google Benchmark on how this could be achieved (see also: https://theunixzoo.co.uk/blog/2021-10-14-preventing-optimisations.html)
+  but I find that the Facebook Folly / Goolge Abseil implementation of the code motion barrier is more complete, using both the Google Benchmark's approach *plus* the `_mm_lfence()` intrinsic for our most revered platform series: x86/x64. ;-)
+  See also: `/folly/folly/chrono/Hardware.h` and "an implementation of sequences for precise measurement" at https://github.com/abseil/abseil-cpp/blob/20240116.2/absl/random/internal/nanobenchmark.cc#L164-L277
+
+Sounds like you might want this, **iff** you really, really care about this at the `debug_break()` location:
+
+```C
+#if defined(_MSC_VER) && !defined(__clang__) && \
+    (defined(_M_IX86) || defined(_M_X64))
+  // msvc does not have embedded assembly
+  _ReadWriteBarrier();
+  _mm_lfence();
+  _ReadWriteBarrier();
+#else
+#if !defined(__clang_major__) || __clang_major__ >= 11
+  asm volatile inline(
+#else
+  asm volatile(
+#endif
+      "lfence\n" 
+        ::: "memory" // memory clobber asks gcc/clang not to reorder
+  );
+#endif
+```
+(see also: https://stackoverflow.com/questions/14449141/the-difference-between-asm-asm-volatile-and-clobbering-memory)
+
 GCC's [__builtin_trap()](http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftrap-3278) causes the optimizers to think the code following can be removed ([test/trap.c](https://github.com/scottt/debugbreak/blob/master/test/trap.c)):
 ```C
 #include <stdio.h>
