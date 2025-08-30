@@ -180,13 +180,42 @@ DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 #if 0   // Catch2 code
 #include <fstream>
 #include <string>
+#include <cerrno>
+
+namespace DebugBreak {
+
+	class ErrnoGuard {
+	public:
+		ErrnoGuard() :
+			m_oldErrno(errno)
+		{}
+		~ErrnoGuard() {
+			// WARNING:
+			// 
+			// obviously, RACE CONDITIONS apply in multithreaded codebases:
+			// as we are NON-ATOMICALLY backup-up & restoring global `errno`, there's
+			// bound to be a race with another thread, while you are enjoying your
+			// `debug_break()`!!
+			// 
+			// /WARNING
+#if defined(_MSC_VER)
+			_set_errno(m_oldErrno);
+#else
+			errno = m_oldErrno;
+#endif
+		}
+	private:
+		int m_oldErrno;
+	};
+
+}
 
 DEBUGBREAK_EXTERN_C
 DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	// Libstdc++ has a bug, where std::ifstream sets errno to 0
 	// This way our users can properly assert over errno values
-	ErrnoGuard guard;
+	DebugBreak::ErrnoGuard guard;
 	std::ifstream in("/proc/self/status");
 	for (std::string line; std::getline(in, line); ) {
 		static constexpr const int PREFIX_LEN = 11;
@@ -208,38 +237,58 @@ DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
+
+#if defined(_MSC_VER)
+#define DEBUGBREAK_RESTORE_ERRNO()                   \
+	_set_errno(m_old_errno)
+#else
+#define DEBUGBREAK_RESTORE_ERRNO()                   \
+	errno = m_old_errno
+#endif
 
 DEBUGBREAK_EXTERN_C
 DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	char buf[4096];
+	int m_old_errno = errno;
 
 	const int status_fd = open("/proc/self/status", O_RDONLY);
 	if (status_fd == -1)
-		return false;
+		goto no_way_josee;
 
 	const ssize_t num_read = read(status_fd, buf, sizeof(buf) - 1);
 	close(status_fd);
 
 	if (num_read <= 0)
-		return false;
+		goto no_way_josee;
 
 	buf[num_read] = '\0';
-	constexpr char tracerPidString[] = "TracerPid:";
+	static constexpr const char tracerPidString[] = "TracerPid:";
 	const auto tracer_pid_ptr = strstr(buf, tracerPidString);
 	if (!tracer_pid_ptr)
-		return false;
+		goto no_way_josee;
 
 	for (const char* characterPtr = tracer_pid_ptr + sizeof(tracerPidString) - 1; characterPtr <= buf + num_read; ++characterPtr)
 	{
 		if (isspace(*characterPtr))
 			continue;
 		else
+		{
+			// We're traced if the PID is not 0 and no other PID starts
+			// with 0 digit, so it's enough to check for just a single
+			// character.
+			DEBUGBREAK_RESTORE_ERRNO();
 			return isdigit(*characterPtr) != 0 && *characterPtr != '0';
+		}
 	}
 
+no_way_josee:
+	DEBUGBREAK_RESTORE_ERRNO();
 	return false;
 }
+
+#undef DEBUGBREAK_RESTORE_ERRNO 
 
 #endif
 
