@@ -130,7 +130,42 @@ __inline__ static void trap_instruction(void)
 	__asm__ volatile("int $0x03");
 }
 #elif defined(__linux__) && (defined(__arm__) || defined(__thumb__))
-	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SYSCALL
+	// precedence for these come from llvm's __builtin_debugtrap() implementation
+	// arm: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/ARM/ARMInstrInfo.td#L2393-L2394
+	//  def : Pat<(debugtrap), (BKPT 0)>, Requires<[IsARM, HasV5T]>;
+	//  def : Pat<(debugtrap), (UDF 254)>, Requires<[IsARM, NoV5T]>;
+	// thumb: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/ARM/ARMInstrThumb.td#L1444-L1445
+	//  def : Pat<(debugtrap), (tBKPT 0)>, Requires<[IsThumb, HasV5T]>;
+	//  def : Pat<(debugtrap), (tUDF 254)>, Requires<[IsThumb, NoV5T]>;
+	// aarch64: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/AArch64/AArch64FastISel.cpp#L3615-L3618
+	//  case Intrinsic::debugtrap:
+	//   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(AArch64::BRK))
+	//       .addImm(0xF000);
+	//   return true;
+	// x86: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/X86/X86InstrSystem.td#L81-L84
+	//  def : Pat<(debugtrap),
+	//            (INT3)>, Requires<[NotPS]>;
+#if (__ARM_ARCH >= 5)
+__attribute__((always_inline))
+__inline__ static void trap_instruction(void)
+{
+	// SEGGER fix derived from https://github.com/scottt/debugbreak/issues/20
+#if defined(__GNUC__) || !defined(__BKPT)
+	__asm__ volatile("bkpt #0");
+#else
+	__BKPT(0)
+#endif
+}
+#else // __ARM_ARCH >= 5
+__attribute__((always_inline))
+__inline__ static void trap_instruction(void)
+{
+	__asm__ volatile("udf #0xfe");
+}
+#endif // __ARM_ARCH >= 5
+
+#if 0  // superfluous now...
+#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SYSCALL
 #define INLINE_SYS_RAISE(x) do \
 	{ \
 		int raise_sig = (x); \
@@ -150,6 +185,8 @@ __inline__ static void trap_instruction(void)
 			: "r0", "r1", "r2", "r3", "memory" \
 		); \
 	} while(0)
+#endif
+
 #elif defined(__thumb__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 /* FIXME: handle __THUMB_INTERWORK__ */
