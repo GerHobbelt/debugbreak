@@ -194,30 +194,6 @@ __inline__ static void trap_instruction(void)
 	__asm__ volatile("udf #0xfe");
 }
 #endif // __ARM_ARCH >= 5
-
-#if 0  // superfluous now...
-#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SYSCALL
-#define INLINE_SYS_RAISE(x) do \
-	{ \
-		int raise_sig = (x); \
-		__asm__ volatile (  \
-			"mov r3, r7\n\t" \
-			"mov r7,#178\n\t" /* gettid */ \
-			"svc 0\n\t" \
-			"mov r1, r0\n\t" /* getpid */ \
-			"mov r7,#172\n\t" \
-			"svc 0\n\t" \
-			"mov r7,#268\n\t" /* tgkill */ \
-			"mov r2,%0\n\t" \
-			"svc 0\n\t" \
-			"mov r7, r3\n\t" \
-			: \
-			:"r"(raise_sig) \
-			: "r0", "r1", "r2", "r3", "memory" \
-		); \
-	} while(0)
-#endif
-
 #elif defined(__thumb__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 /* FIXME: handle __THUMB_INTERWORK__ */
