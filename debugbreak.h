@@ -116,7 +116,9 @@ extern "C" {
 #define DEBUG_BREAK_USE_SYSCALL                     5
 #define DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK   6
 
-#if defined(_MSC_VER)
+#if __has_builtin(__builtin_debugtrap)
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
+#elif defined(_MSC_VER)
 	#include <intrin.h>
 
 	#pragma intrinsic(__debugbreak)
@@ -249,8 +251,6 @@ __inline__ static void trap_instruction(void)
 			: "x0", "x1", "x2", "x8", "memory", "cc" \
 		); \
 	} while(0)
-#elif defined(__aarch64__) && defined(__APPLE__) && __has_builtin(__builtin_debugtrap)
-	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
 #elif defined(__aarch64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 __attribute__((always_inline))
@@ -295,8 +295,6 @@ __inline__ static void trap_instruction(void)
 {
        __asm__ volatile("break 0x5");
 }
-#elif __has_builtin(__builtin_debugtrap)
-	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
 #else
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
