@@ -177,60 +177,7 @@ DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 // https://stackoverflow.com/questions/3596781/how-to-detect-if-the-current-process-is-being-run-by-gdb
 // and the Catch2 codebase: we're going for the C implementation as that works better for our header-only approach.
 
-#if 0   // Catch2 code
-#include <fstream>
-#include <string>
-#include <cerrno>
-
-namespace DebugBreak {
-
-	class ErrnoGuard {
-	public:
-		ErrnoGuard() :
-			m_oldErrno(errno)
-		{}
-		~ErrnoGuard() {
-			// WARNING:
-			// 
-			// obviously, RACE CONDITIONS apply in multithreaded codebases:
-			// as we are NON-ATOMICALLY backup-up & restoring global `errno`, there's
-			// bound to be a race with another thread, while you are enjoying your
-			// `debug_break()`!!
-			// 
-			// /WARNING
-#if defined(_MSC_VER)
-			_set_errno(m_oldErrno);
-#else
-			errno = m_oldErrno;
-#endif
-		}
-	private:
-		int m_oldErrno;
-	};
-
-}
-
-DEBUGBREAK_EXTERN_C
-DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
-{
-	// Libstdc++ has a bug, where std::ifstream sets errno to 0
-	// This way our users can properly assert over errno values
-	DebugBreak::ErrnoGuard guard;
-	std::ifstream in("/proc/self/status");
-	for (std::string line; std::getline(in, line); ) {
-		static constexpr const int PREFIX_LEN = 11;
-		if (line.compare(0, PREFIX_LEN, "TracerPid:\t") == 0) {
-			// We're traced if the PID is not 0 and no other PID starts
-			// with 0 digit, so it's enough to check for just a single
-			// character.
-			return line.length() > PREFIX_LEN && line[PREFIX_LEN] != '0';
-		}
-	}
-
-	return false;
-}
-
-#else // S.O. + fixes from SO comments
+// taken from S.O. + fixes from SO comments + Catch2 `errno` backup/restore bugfixes.
 
 #include <sys/stat.h>
 #include <string.h>
@@ -289,8 +236,6 @@ no_way_josee:
 }
 
 #undef DEBUGBREAK_RESTORE_ERRNO 
-
-#endif
 
 #else
 
