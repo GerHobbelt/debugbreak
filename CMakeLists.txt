@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.20)
-project(debugbreak VERSION 1.0.0)
+cmake_minimum_required(VERSION 3.26.4)
+
+project(debugbreak VERSION 2.0)
 
 add_library(debugbreak INTERFACE)
-target_include_directories(debugbreak INTERFACE ./)
+target_sources(debugbreak PRIVATE
+	"debugbreak.h"
+)
+target_include_directories(debugbreak INTERFACE .)
