@@ -5,6 +5,9 @@ static int want_debugbreak_to_fire = 0;
 
 #define USER_DEFINED_FUNC_IS_DEBUGGER_PRESENT()    (want_debugbreak_to_fire != 0)
 
+// fix for building this sample code in monolithic mode: this next line is NOT required for regular vanilla builds of the code!
+#define DEBUGBREAK_OFFLOAD_IMPLEMENTATION      0
+
 #include "debugbreak.h"
 #include "monolithic_examples.h"
 
