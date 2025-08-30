@@ -301,10 +301,15 @@ __inline__ static void trap_instruction(void)
 {
        __asm__ volatile("break 0x5");
 }
+#elif defined(__has_builtin)
+# if __has_builtin(__builtin_debugtrap)
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
+# else
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
+# endif
 #else
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
-
 
 #ifndef DEBUG_BREAK_IMPL
 #error "debugbreak.h is not supported on this target"

@@ -128,5 +128,6 @@ Behavior on Different Architectures
 | LoongArch64        | `break 0x5` |
 | MSVC compiler      | `__debugbreak` |
 | Apple compiler on AArch64     | `__builtin_trap()` |
+| Otherwise          | `__builtin_debugtrap()` (if available!) |
 | Otherwise          | `raise(SIGTRAP)` |
 
