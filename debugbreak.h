@@ -26,6 +26,11 @@
 #ifndef DEBUG_BREAK_H
 #define DEBUG_BREAK_H
 
+#if !defined(__has_builtin)
+#define __has_builtin(f)      0
+#define LIBDEBUGBREAK_EMULATES___HAS_BUILTIN   1
+#endif
+
 
 // from libassert.
 // 
@@ -250,14 +255,8 @@ __inline__ static void trap_instruction(void)
 			: "x0", "x1", "x2", "x8", "memory", "cc" \
 		); \
 	} while(0)
-#elif defined(__aarch64__) && defined(__APPLE__)
-#if defined(__has_builtin)
-# if __has_builtin(__builtin_debugtrap)
+#elif defined(__aarch64__) && defined(__APPLE__) && __has_builtin(__builtin_debugtrap)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
-# else
-	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_TRAP
-# endif
-#endif
 #elif defined(__aarch64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 __attribute__((always_inline))
@@ -302,12 +301,8 @@ __inline__ static void trap_instruction(void)
 {
        __asm__ volatile("break 0x5");
 }
-#elif defined(__has_builtin)
-# if __has_builtin(__builtin_debugtrap)
+#elif __has_builtin(__builtin_debugtrap)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
-# else
-	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
-# endif
 #else
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
@@ -355,5 +350,10 @@ __inline__ static void debug_break(void)
 #endif
 
 #endif /* ifdef _MSC_VER */
+
+// undo the __has_builtin emulation as other libraries/sources will VERY PROBABLY use `defined(__has_builtin)` as a feature test, which we MUST NOT thwart!
+#if defined(LIBDEBUGBREAK_EMULATES___HAS_BUILTIN)
+#undef __has_builtin
+#endif
 
 #endif /* ifndef DEBUG_BREAK_H */
