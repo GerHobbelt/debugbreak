@@ -240,6 +240,14 @@ __inline__ static void trap_instruction(void)
 	/* Known problem:
 	 * Same problem and workaround as Thumb mode */
 }
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+DEBUGBREAK_EXTERN_C
+__attribute__((always_inline))
+__inline__ static void trap_instruction(void)
+{
+	__asm__ volatile("brk #0xf000");
+}
 #elif defined(__aarch64__) && defined(__linux__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SYSCALL
 #define INLINE_SYS_RAISE(x) do \
