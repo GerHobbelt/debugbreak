@@ -26,6 +26,118 @@
 #ifndef DEBUG_BREAK_H
 #define DEBUG_BREAK_H
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+#include <intrin.h>		// __debugbreak()
+#include <stdint.h>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if defined(_WIN32) || defined(WIN64)
+
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+__declspec(dllimport) void __stdcall DebugBreak(void);
+
+#if (defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0400)) || (defined(_WIN32_WINDOWS) && (_WIN32_WINDOWS > 0x0400))
+
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+__declspec(dllimport)  int __stdcall IsDebuggerPresent(void);
+
+static __declspec(noinline) void BreakIntoDebugger(void)
+{
+	if (IsDebuggerPresent())
+	{
+		// MSVC only has a reasonable (= active) define for _CrtDbgBreak in debug build mode...
+#if defined(_CrtDbgBreak) && defined(_DEBUG)
+		_CrtDbgBreak();
+#else
+		DebugBreak();
+#endif
+	}
+}
+
+#elif defined(_MSC_VER)
+
+static __declspec(noinline) void BreakIntoDebugger(void)
+{
+	// MSVC only has a reasonable (= active) define for _CrtDbgBreak in debug build mode...
+#if defined(_CrtDbgBreak) && defined(_DEBUG)
+	_CrtDbgBreak();
+#else
+	__debugbreak();
+#endif
+}
+
+#else
+
+static __declspec(noinline) void BreakIntoDebugger(void)
+{
+	DebugBreak();
+}
+
+#endif   // _WIN32_WINNT || _WIN32_WINDOWS
+
+#elif defined(__has_builtin) && __has_builtin(__builtin_debugtrap)
+
+static void BreakIntoDebugger(void)
+{
+	__builtin_debugtrap();
+}
+
+#elif defined(__has_builtin) && __has_builtin(__debugbreak)
+
+static void BreakIntoDebugger(void)
+{
+	__debugbreak();
+}
+
+#elif defined(__GNUC__) && (defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__i386))
+// If we can use inline assembler, do it because this allows us to break
+// directly at the location of the failing check instead of breaking inside
+// raise() called from it, i.e. one stack frame below.
+
+static void BreakIntoDebugger(void)
+{
+	asm volatile ("int $3") /* NOLINT */;
+}
+
+#else // Fall back to the generic ways.
+
+#include <signal.h>
+
+#if defined(SIGTRAP) 
+
+static void BreakIntoDebugger(void)
+{
+	raise(SIGTRAP);
+}
+
+#else
+
+static void BreakIntoDebugger(void)
+{
+	static int s = 0;
+	while (s == 0) {
+		sleep(1);
+	}
+}
+
+#endif
+
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifdef _MSC_VER
 
 #include <intrin.h>
