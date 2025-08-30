@@ -105,30 +105,24 @@
 
 
 
-#ifdef _MSC_VER
-
-#include <intrin.h>
-
-#pragma intrinsic(__debugbreak)
-
-static inline void debug_break(void)
-{
-	__debugbreak();
-}
-
-#else
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DEBUG_BREAK_USE_TRAP_INSTRUCTION  1
-#define DEBUG_BREAK_USE_BUILTIN_TRAP      2
-#define DEBUG_BREAK_USE_SIGTRAP           3
-#define DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP 4
-#define DEBUG_BREAK_USE_SYSCALL           5
+#define DEBUG_BREAK_USE_TRAP_INSTRUCTION            1
+#define DEBUG_BREAK_USE_BUILTIN_TRAP                2
+#define DEBUG_BREAK_USE_SIGTRAP                     3
+#define DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP           4
+#define DEBUG_BREAK_USE_SYSCALL                     5
+#define DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK   6
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(_MSC_VER)
+	#include <intrin.h>
+
+	#pragma intrinsic(__debugbreak)
+
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK
+#elif defined(__i386__) || defined(__x86_64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 __inline__ static void trap_instruction(void)
 {
@@ -341,6 +335,11 @@ __inline__ static void debug_break(void)
 {
 	raise(SIGTRAP);
 }
+#elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK
+static inline void debug_break(void)
+{
+	__debugbreak();
+}
 #else
 #error "invalid DEBUG_BREAK_IMPL value"
 #endif
@@ -348,8 +347,6 @@ __inline__ static void debug_break(void)
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* ifdef _MSC_VER */
 
 // undo the __has_builtin emulation as other libraries/sources will VERY PROBABLY use `defined(__has_builtin)` as a feature test, which we MUST NOT thwart!
 #if defined(LIBDEBUGBREAK_EMULATES___HAS_BUILTIN)
