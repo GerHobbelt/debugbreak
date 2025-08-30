@@ -26,6 +26,80 @@
 #ifndef DEBUG_BREAK_H
 #define DEBUG_BREAK_H
 
+
+// from libassert.
+// 
+// TODO:
+// roll this into here + adjust libassert to `#include <debugbreak.h>` and use `debug_break()` afterwards: single implementation throughout the monolith...
+
+#if 0
+#if LIBASSERT_IS_CLANG || LIBASSERT_IS_GCC
+#define LIBASSERT_WARNING_PRAGMA_PUSH _Pragma("GCC diagnostic push")
+#define LIBASSERT_WARNING_PRAGMA_POP _Pragma("GCC diagnostic pop")
+#elif LIBASSERT_IS_MSVC
+#define LIBASSERT_WARNING_PRAGMA_PUSH _Pragma("warning(push)")
+#define LIBASSERT_WARNING_PRAGMA_POP _Pragma("warning(pop)")
+#endif
+
+#if LIBASSERT_IS_CLANG || LIBASSERT_IS_ICX
+ // clang and icx support this as far back as this library could care
+#define LIBASSERT_BREAKPOINT() __builtin_debugtrap()
+#elif LIBASSERT_IS_MSVC || LIBASSERT_IS_ICC
+ // msvc and icc support this as far back as this library could care
+#define LIBASSERT_BREAKPOINT() __debugbreak()
+#elif LIBASSERT_IS_GCC
+#if LIBASSERT_GCC_VERSION >= 1200
+#define LIBASSERT_IGNORE_CPP20_EXTENSION_WARNING _Pragma("GCC diagnostic ignored \"-Wc++20-extensions\"")
+#else
+#define LIBASSERT_IGNORE_CPP20_EXTENSION_WARNING
+#endif
+#define LIBASSERT_ASM_BREAKPOINT(instruction) \
+  do { \
+   LIBASSERT_WARNING_PRAGMA_PUSH \
+   LIBASSERT_IGNORE_CPP20_EXTENSION_WARNING \
+   __asm__ __volatile__(instruction) \
+   ; \
+   LIBASSERT_WARNING_PRAGMA_POP \
+  } while(0)
+ // precedence for these come from llvm's __builtin_debugtrap() implementation
+ // arm: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/ARM/ARMInstrInfo.td#L2393-L2394
+ //  def : Pat<(debugtrap), (BKPT 0)>, Requires<[IsARM, HasV5T]>;
+ //  def : Pat<(debugtrap), (UDF 254)>, Requires<[IsARM, NoV5T]>;
+ // thumb: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/ARM/ARMInstrThumb.td#L1444-L1445
+ //  def : Pat<(debugtrap), (tBKPT 0)>, Requires<[IsThumb, HasV5T]>;
+ //  def : Pat<(debugtrap), (tUDF 254)>, Requires<[IsThumb, NoV5T]>;
+ // aarch64: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/AArch64/AArch64FastISel.cpp#L3615-L3618
+ //  case Intrinsic::debugtrap:
+ //   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(AArch64::BRK))
+ //       .addImm(0xF000);
+ //   return true;
+ // x86: https://github.com/llvm/llvm-project/blob/e9954ec087d640809082f46d1c7e5ac1767b798d/llvm/lib/Target/X86/X86InstrSystem.td#L81-L84
+ //  def : Pat<(debugtrap),
+ //            (INT3)>, Requires<[NotPS]>;
+#if defined(__i386__) || defined(__x86_64__)
+#define LIBASSERT_BREAKPOINT() LIBASSERT_ASM_BREAKPOINT("int3")
+#elif defined(__arm__) || defined(__thumb__)
+#if __ARM_ARCH >= 5
+#define LIBASSERT_BREAKPOINT() LIBASSERT_ASM_BREAKPOINT("bkpt #0")
+#else
+#define LIBASSERT_BREAKPOINT() LIBASSERT_ASM_BREAKPOINT("udf #0xfe")
+#endif
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define LIBASSERT_BREAKPOINT() LIBASSERT_ASM_BREAKPOINT("brk #0xf000")
+#else
+ // some architecture we aren't prepared for
+#define LIBASSERT_BREAKPOINT()
+#endif
+#else
+ // some compiler we aren't prepared for
+#define LIBASSERT_BREAKPOINT()
+#endif
+#endif
+
+
+
+
+
 #ifdef _MSC_VER
 
 #include <intrin.h>
