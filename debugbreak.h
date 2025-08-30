@@ -519,7 +519,10 @@ static inline void debug_break(void)
 DEBUGBREAK_EXTERN_C
 static inline void debug_break(void)
 {
-	std::breakpoint_if_debugging();
+	if (debugbreak_is_debugger_present())
+	{
+		std::breakpoint();
+	}
 }
 #else
 #error "invalid DEBUG_BREAK_IMPL value"
