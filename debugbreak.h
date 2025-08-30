@@ -66,15 +66,15 @@
 #define DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK   6
 #define DEBUG_BREAK_USE_STD_DEBUGBREAK              7
 
-// ---------------------------------------------------------------------------------
-//
-// definition of `debugbreak_is_debugger_present()`
-
 #if DEBUGBREAK_OFFLOAD_IMPLEMENTATION != 0
 #define DEBUGBREAK_STATIC_INLINE                  /* uh-nuh! no! we're linking the implementation from a dedicated object file instead! */
 #else
 #define DEBUGBREAK_STATIC_INLINE                  static inline 
 #endif
+
+// ---------------------------------------------------------------------------------
+//
+// definition of `debugbreak_is_debugger_present()`
 
 #if (DEBUGBREAK_OFFLOAD_IMPLEMENTATION != 0) && !defined(DEBUGBREAK_OFFLOAD_IMPLEMENTATION_RIGHT_HERE)
 
