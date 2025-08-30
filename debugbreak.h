@@ -41,6 +41,10 @@
 #define LIBDEBUGBREAK_EMULATES___HAS_FEATURE   1
 #endif
 
+#if defined(DEBUGBREAK_OFFLOAD_IMPLEMENTATION)
+#error "Sorry, this is the strict header-only implementation. The DEBUGBREAK_OFFLOAD_IMPLEMENTATION switch/feature is NOT supported in this branch!"
+#endif
+
 
 #ifdef __cplusplus
 #define DEBUGBREAK_EXTERN_C     extern "C"
@@ -56,6 +60,8 @@
 #define DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK   6
 #define DEBUG_BREAK_USE_STD_DEBUGBREAK              7
 
+#define DEBUGBREAK_STATIC_INLINE                  static inline 
+
 // ---------------------------------------------------------------------------------
 //
 // definition of `debugbreak_is_debugger_present()`
@@ -66,7 +72,7 @@
 // heuristics/platform-specific approach below.
 
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	return USER_DEFINED_FUNC_IS_DEBUGGER_PRESENT();
 }
@@ -89,7 +95,7 @@ extern __declspec(dllimport)  int __stdcall IsDebuggerPresent(void);
 #endif
 
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	return IsDebuggerPresent();
 }
@@ -99,7 +105,7 @@ static inline int debugbreak_is_debugger_present(void)
 #include <debugging>
 
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	return std::is_debugger_present();
 }
@@ -124,7 +130,7 @@ static inline int debugbreak_is_debugger_present(void)
 // Returns true if the current process is being debugged (either
 // running under the debugger or has a debugger attached post facto).
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	int                 mib[4];
 	struct kinfo_proc   info;
@@ -176,14 +182,14 @@ static inline int debugbreak_is_debugger_present(void)
 #include <string>
 
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	// Libstdc++ has a bug, where std::ifstream sets errno to 0
 	// This way our users can properly assert over errno values
 	ErrnoGuard guard;
 	std::ifstream in("/proc/self/status");
 	for (std::string line; std::getline(in, line); ) {
-		static const int PREFIX_LEN = 11;
+		static constexpr const int PREFIX_LEN = 11;
 		if (line.compare(0, PREFIX_LEN, "TracerPid:\t") == 0) {
 			// We're traced if the PID is not 0 and no other PID starts
 			// with 0 digit, so it's enough to check for just a single
@@ -204,7 +210,7 @@ static inline int debugbreak_is_debugger_present(void)
 #include <ctype.h>
 
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	char buf[4096];
 
@@ -243,7 +249,7 @@ static inline int debugbreak_is_debugger_present(void)
 // --> be conservative:
 // apply a heuristic: debug builds expect debugging, release builds DO NOT.
 DEBUGBREAK_EXTERN_C
-static inline int debugbreak_is_debugger_present(void)
+DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 #if defined(_DEBUG)
 	return true;
@@ -455,8 +461,7 @@ __inline__ static void trap_instruction(void)
 #error "debugbreak.h is not supported on this target"
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_SYSCALL
 DEBUGBREAK_EXTERN_C
-__attribute__((always_inline))
-__inline__ static void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -466,8 +471,7 @@ __inline__ static void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_TRAP_INSTRUCTION
 DEBUGBREAK_EXTERN_C
-__attribute__((always_inline))
-__inline__ static void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -476,8 +480,7 @@ __inline__ static void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BUILTIN_DEBUGTRAP
 DEBUGBREAK_EXTERN_C
-__attribute__((always_inline))
-__inline__ static void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -486,8 +489,7 @@ __inline__ static void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BUILTIN_TRAP
 DEBUGBREAK_EXTERN_C
-__attribute__((always_inline))
-__inline__ static void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -498,8 +500,7 @@ __inline__ static void debug_break(void)
 #include <signal.h>
 
 DEBUGBREAK_EXTERN_C
-__attribute__((always_inline))
-__inline__ static void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -508,7 +509,7 @@ __inline__ static void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_INTRINSIC_MSVC_DEBUGBREAK
 DEBUGBREAK_EXTERN_C
-static inline void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
@@ -517,7 +518,7 @@ static inline void debug_break(void)
 }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_STD_DEBUGBREAK
 DEBUGBREAK_EXTERN_C
-static inline void debug_break(void)
+DEBUGBREAK_STATIC_INLINE void debug_break(void)
 {
 	if (debugbreak_is_debugger_present())
 	{
