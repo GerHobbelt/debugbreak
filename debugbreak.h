@@ -294,6 +294,13 @@ __inline__ static void trap_instruction(void)
 	 * 'riscv_sw_breakpoint_from_kind' */
 	__asm__ volatile(".4byte 0x00100073");
 }
+#elif defined(__loongarch64)
+	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+__attribute__((always_inline))
+__inline__ static void trap_instruction(void)
+{
+       __asm__ volatile("break 0x5");
+}
 #else
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif

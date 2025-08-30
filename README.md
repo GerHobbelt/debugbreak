@@ -125,6 +125,7 @@ Behavior on Different Architectures
 | AArch64, ARMv8     | `.inst 0xd4200000` |
 | POWER              | `.4byte 0x7d821008` |
 | RISC-V             | `.4byte 0x00100073` |
+| LoongArch64        | `break 0x5` |
 | MSVC compiler      | `__debugbreak` |
 | Apple compiler on AArch64     | `__builtin_trap()` |
 | Otherwise          | `raise(SIGTRAP)` |
