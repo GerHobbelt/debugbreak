@@ -15,7 +15,7 @@ int main(void)
 * Include one header file and insert calls to `debug_break()` in the code where you wish to break into the debugger.
 * Supports GCC, Clang and MSVC.
 * Works well on ARM, AArch64, i686, x86-64, POWER and has a fallback code path for other architectures.
-* Works like the **DebugBreak()** fuction provided by [Windows](http://msdn.microsoft.com/en-us/library/ea9yy3ey.aspx) and [QNX](http://www.qnx.com/developers/docs/6.3.0SP3/neutrino/lib_ref/d/debugbreak.html).
+* Works like the **DebugBreak()** function provided by [Windows](http://msdn.microsoft.com/en-us/library/ea9yy3ey.aspx) and [QNX](http://www.qnx.com/developers/docs/6.3.0SP3/neutrino/lib_ref/d/debugbreak.html).
 
 **License**: the very permissive [2-Clause BSD](https://github.com/scottt/debugbreak/blob/master/COPYING).
 
@@ -80,7 +80,7 @@ main
 0x00000000004003de <+14>:    5a	pop    %rdx
 0x00000000004003df <+15>:    c3	retq   
 ```
-which correctly trigges **SIGTRAP** and single-stepping in GDB after a **debug_break()** hit works well.
+which correctly triggers **SIGTRAP** and single-stepping in GDB after a **debug_break()** hit works well.
 
 Clang / LLVM also has a **__builtin_trap()** that generates **ud2** but further provides **__builtin_debugtrap()** that generates **int3** on i386 / x86-64 ([original LLVM intrinsic](http://lists.llvm.org/pipermail/llvm-commits/Week-of-Mon-20120507/142621.html), [further fixes](https://reviews.llvm.org/rL166300#96cef7d3), [Clang builtin support](https://reviews.llvm.org/rL166298)).
 
@@ -110,7 +110,7 @@ On linux arm/aarch64 an inlined syscall is used.
 
 On AArch64, **debug_break()** generates **.inst 0xd4200000**.
 
-See table below for the behavior of **debug_break()** on other architecturs.
+See table below for the behavior of **debug_break()** on other architectures.
 
 Behavior on Different Architectures
 ----------------
