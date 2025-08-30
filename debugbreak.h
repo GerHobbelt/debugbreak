@@ -171,6 +171,7 @@ __inline__ static void trap_instruction(void)
 	//  def : Pat<(debugtrap),
 	//            (INT3)>, Requires<[NotPS]>;
 #if (__ARM_ARCH >= 5)
+#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 
 DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
@@ -184,6 +185,7 @@ __inline__ static void trap_instruction(void)
 #endif
 }
 #else // __ARM_ARCH >= 5
+#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 
 DEBUGBREAK_EXTERN_C
 __attribute__((always_inline))
