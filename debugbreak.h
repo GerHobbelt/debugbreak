@@ -69,7 +69,11 @@
 #if DEBUGBREAK_OFFLOAD_IMPLEMENTATION != 0
 #define DEBUGBREAK_STATIC_INLINE                  /* uh-nuh! no! we're linking the implementation from a dedicated object file instead! */
 #else
+#ifdef __cplusplus
+#define DEBUGBREAK_STATIC_INLINE                  inline 
+#else
 #define DEBUGBREAK_STATIC_INLINE                  static inline 
+#endif
 #endif
 
 // ---------------------------------------------------------------------------------
@@ -288,7 +292,11 @@ extern void debug_break(void);
 #else // else: DEBUGBREAK_OFFLOAD_IMPLEMENTATION >= 0
 
 #undef DEBUGBREAK_STATIC_INLINE                  
+#ifdef __cplusplus
+#define DEBUGBREAK_STATIC_INLINE                  inline 
+#else
 #define DEBUGBREAK_STATIC_INLINE                  static inline 
+#endif
 
 #if __has_include(<debugging>) && __has_feature(__cpp_lib_debugging)
 	#include <debugging>
@@ -305,8 +313,11 @@ extern void debug_break(void);
 #elif defined(__i386__) || defined(__x86_64__)
 	#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
 
-DEBUGBREAK_EXTERN_C
-__inline__ static void trap_instruction(void)
+#ifdef __cplusplus
+__inline__ void trap_instruction()
+#else
+DEBUGBREAK_EXTERN_C __inline__ static void trap_instruction(void)
+#endif
 {
 	__asm__ volatile("int $0x03");
 }
