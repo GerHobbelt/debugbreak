@@ -224,29 +224,31 @@ DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 	if (status_fd == -1)
 		goto no_way_josee;
 
-	const ssize_t num_read = read(status_fd, buf, sizeof(buf) - 1);
-	close(status_fd);
-
-	if (num_read <= 0)
-		goto no_way_josee;
-
-	buf[num_read] = '\0';
-	static constexpr const char tracerPidString[] = "TracerPid:";
-	const auto tracer_pid_ptr = strstr(buf, tracerPidString);
-	if (!tracer_pid_ptr)
-		goto no_way_josee;
-
-	for (const char* characterPtr = tracer_pid_ptr + sizeof(tracerPidString) - 1; characterPtr <= buf + num_read; ++characterPtr)
 	{
-		if (isspace(*characterPtr))
-			continue;
-		else
+		const ssize_t num_read = read(status_fd, buf, sizeof(buf) - 1);
+		close(status_fd);
+
+		if (num_read <= 0)
+			goto no_way_josee;
+
+		buf[num_read] = '\0';
+		static constexpr const char tracerPidString[] = "TracerPid:";
+		const auto tracer_pid_ptr = strstr(buf, tracerPidString);
+		if (!tracer_pid_ptr)
+			goto no_way_josee;
+
+		for (const char* characterPtr = tracer_pid_ptr + sizeof(tracerPidString) - 1; characterPtr <= buf + num_read; ++characterPtr)
 		{
-			// We're traced if the PID is not 0 and no other PID starts
-			// with 0 digit, so it's enough to check for just a single
-			// character.
-			DEBUGBREAK_RESTORE_ERRNO();
-			return isdigit(*characterPtr) != 0 && *characterPtr != '0';
+			if (isspace(*characterPtr))
+				continue;
+			else
+			{
+				// We're traced if the PID is not 0 and no other PID starts
+				// with 0 digit, so it's enough to check for just a single
+				// character.
+				DEBUGBREAK_RESTORE_ERRNO();
+				return isdigit(*characterPtr) != 0 && *characterPtr != '0';
+			}
 		}
 	}
 
