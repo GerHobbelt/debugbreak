@@ -154,7 +154,7 @@ DEBUGBREAK_STATIC_INLINE int debugbreak_is_debugger_present(void)
 {
 	int                 mib[4];
 	struct kinfo_proc   info;
-	std::size_t         size;
+	size_t         size;
 
 	// Initialize the flags so that, if sysctl fails for some bizarre
 	// reason, we get a predictable result.
